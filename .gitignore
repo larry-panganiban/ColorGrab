@@ -1,0 +1,70 @@
+# Auto-generated version files
+ColorGrab/version.h
+ColorGrab/installer/version.iss
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# ignore visual studio temporary files
+.vs/
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Generated files
+*.dep
+*.mak
+vcpkg_installed/
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# non-compiles browse files (NCB) used by IntelliSense
+*.ncb
+
+# Visual Studio options file (OPT) used for breakpoints, etc
+*.opt
+
+# Visual Studio log file (PLG) used for build output
+*.plg
+
+# Visual Studio solution user options (SUO)
+*.suo
+
+# VisualStudio2008 user settings
+*.user
+
+# Visual studio (APS) - last resource editor state
+*.aps
+
+# legacy Visual Studio 97/5.0 temporary files
+*.001
+*.002
+
+# exlude Class Wizard files from version control
+*.clw
+
+# Visual Studio build output
+Release/
+Debug/
+ColorGrab___Win32_Release_without_ALIGN/
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app

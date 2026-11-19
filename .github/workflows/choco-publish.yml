@@ -1,0 +1,122 @@
+name: Publish Chocolatey Package
+
+# This workflow is triggered manually.
+# It is intentionally NOT triggered by GitHub Releases.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish to Chocolatey (e.g., v1.0.0)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    # Grant minimal read-only access to repository contents
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Determine version + tag
+        id: get_version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          $version = $tag.TrimStart("v")
+
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Download release asset
+        shell: pwsh
+        run: |
+          gh release download ${{ steps.get_version.outputs.tag }} `
+            --repo ${{ github.repository }} `
+            --pattern "colorgrab-setup.exe"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+      - name: Prepare tools folder
+        shell: pwsh
+        run: |
+          mkdir ColorGrab/choco/tools -Force
+          Copy-Item colorgrab-setup.exe ColorGrab/choco/tools/
+          Copy-Item LICENSE.txt ColorGrab/choco/tools/
+
+      - name: Generate checksum
+        id: checksum
+        shell: pwsh
+        run: |
+          $sha = (Get-FileHash ColorGrab/choco/tools/colorgrab-setup.exe -Algorithm SHA256).Hash
+          echo "sha256=$sha" >> $env:GITHUB_OUTPUT
+
+      - name: Update nuspec version
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          (Get-Content ColorGrab/choco/colorgrab.nuspec) `
+            -replace '<version>[^<]+</version>', "<version>$version</version>" `
+            -replace 'releases/tag/v0\.0\.0', "releases/tag/v$version" `
+            | Set-Content ColorGrab/choco/colorgrab.nuspec
+
+      - name: Generate VERIFICATION.txt
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.get_version.outputs.tag }}"
+          $url = "https://github.com/${{ github.repository }}/releases/download/$tag/colorgrab-setup.exe"
+          $checksum = "${{ steps.checksum.outputs.sha256 }}"
+
+          (Get-Content ColorGrab/choco/tools/VERIFICATION.template.txt) `
+            -replace "{{URL}}", $url `
+            -replace "{{CHECKSUM}}", $checksum `
+            | Set-Content ColorGrab/choco/tools/VERIFICATION.txt
+
+      - name: Dump generated files
+        shell: pwsh
+        run: |
+          Write-Host "=== VERIFICATION.txt ==="
+          Get-Content ColorGrab/choco/tools/VERIFICATION.txt
+          Write-Host "`n=== chocolateyinstall.ps1 ==="
+          Get-Content ColorGrab/choco/tools/chocolateyinstall.ps1
+          Write-Host "`n=== colorgrab.nuspec ==="
+          Get-Content ColorGrab/choco/colorgrab.nuspec
+
+      - name: Build Chocolatey package
+        working-directory: ColorGrab/choco
+        run: |
+          choco pack --debug
+
+      - name: Upload Chocolatey package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: chocolatey-package
+          path: ColorGrab/choco/*.nupkg
+
+      - name: Push to Chocolatey.org
+        working-directory: ColorGrab/choco
+        env:
+          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
+        shell: pwsh
+        run: |
+          # Explicitly expand the .nupkg file to avoid PowerShell globbing issues
+          $pkg = Get-ChildItem *.nupkg | Select-Object -First 1
+
+          if (-not $pkg) {
+            Write-Error "No .nupkg file found to push!"
+            exit 1
+          }
+
+          choco push $pkg.FullName `
+            --source https://push.chocolatey.org/ `
+            --api-key $env:CHOCO_API_KEY `
+            --yes

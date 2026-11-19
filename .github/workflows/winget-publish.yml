@@ -1,0 +1,33 @@
+name: Publish to WinGet
+
+# This workflow is triggered manually.
+# It is intentionally NOT triggered by GitHub Releases.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish to WinGet (e.g., v1.0.0)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    # Grant minimal read-only access to repository contents
+    permissions:
+      contents: read
+
+    steps:
+      - name: Determine tag
+        id: meta
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Publish to WinGet
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: LarryPanganiban.ColorGrab
+          release-tag: ${{ steps.meta.outputs.tag }}
+          token: ${{ secrets.WINGET_TOKEN }}

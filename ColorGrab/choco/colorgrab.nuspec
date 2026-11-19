@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>colorgrab</id>
+    <version>0.0.0</version> <!-- Replaced by GitHub Action -->
+    <title>ColorGrab</title>
+    <authors>Larry Panganiban</authors>
+    <owners>larry-panganiban</owners>
+
+    <summary>A lightweight Windows color picker utility.</summary>
+    <description>
+ColorGrab is a multi-purpose color picker for Windows, featuring an eyedropper, magnifier, color history, and multiple output formats including HEX, RGB, and HTML color codes.
+    </description>
+
+    <projectUrl>https://github.com/larry-panganiban/ColorGrab</projectUrl>
+    <projectSourceUrl>https://github.com/larry-panganiban/ColorGrab</projectSourceUrl>
+    <packageSourceUrl>https://github.com/larry-panganiban/ColorGrab/tree/main/ColorGrab/choco</packageSourceUrl>
+    <bugTrackerUrl>https://github.com/larry-panganiban/ColorGrab/issues</bugTrackerUrl>
+    <docsUrl>https://github.com/larry-panganiban/ColorGrab#readme</docsUrl>
+
+    <licenseUrl>https://github.com/larry-panganiban/ColorGrab/blob/main/LICENSE.txt</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <tags>color picker eyedropper design developer utility mfc windows</tags>
+
+    <releaseNotes>https://github.com/larry-panganiban/ColorGrab/releases/tag/v0.0.0</releaseNotes> <!-- Replaced by GitHub Action -->
+  </metadata>
+
+  <files>
+    <file src="tools/chocolateyinstall.ps1" target="tools" />
+    <file src="tools/chocolateyuninstall.ps1" target="tools" />
+    <file src="tools/colorgrab-setup.exe" target="tools" />
+    <file src="tools/LICENSE.txt" target="tools" />
+    <file src="tools/VERIFICATION.txt" target="tools" />
+  </files>
+</package>

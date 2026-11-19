@@ -1,0 +1,121 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+
+    runs-on: windows-2025
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Fetch full history and all tags so build.cmd can run `git describe`
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+
+      - name: Install dependencies
+        run: vcpkg install --triplet x86-windows
+
+      - name: Build using build.cmd
+        run: ./build.cmd
+
+      - name: Run Catch2 Tests
+        run: >
+          .\ColorGrabTests\Release\ColorGrabTests.exe
+          --reporter console
+          --reporter junit::out=test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: test-results.xml
+
+      - name: Download VC++ Redistributable
+        run: |
+          $url = "https://aka.ms/vs/17/release/vc_redist.x86.exe"
+          $out = "ColorGrab/installer/vc_redist.x86.exe"
+
+          Invoke-WebRequest -Uri $url -OutFile $out
+
+          # Verify file integrity to avoid accidentally bundling a corrupted installer
+          $expected = "0c09f2611660441084ce0df425c51c11e147e6447963c3690f97e0b25c55ed64"
+          $actual = (Get-FileHash $out -Algorithm SHA256).Hash
+
+          if ($actual -ne $expected) {
+            Write-Error "Checksum mismatch for vc_redist.x86.exe"
+            exit 1
+          }
+
+      - name: Build Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.9
+        with:
+          path: ColorGrab\installer\colorgrab.iss
+          options: /O+
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: installers
+          path: .\ColorGrab\output
+          retention-days: 30
+
+      - name: Create Flat Zip Archive
+        run: |
+          Remove-Item -Path "Release-standalone" -Recurse -Force -ErrorAction SilentlyContinue
+
+          New-Item -ItemType Directory -Path "Release-standalone"
+
+          Copy-Item -Path "ColorGrab\Release\*.exe" -Destination "Release-standalone"
+          Copy-Item -Path "ColorGrab\ReadMe.txt" -Destination "Release-standalone"
+          Copy-Item -Path "LICENSE.txt" -Destination "Release-standalone"
+          Copy-Item -Path "ColorGrab\packaging\*.chm" -Destination "Release-standalone"
+
+          Set-Location "Release-standalone"
+
+          Compress-Archive -Path "*" -DestinationPath "../colorgrab.zip" -Force
+
+      - name: Upload Zip Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: colorgrab-zip
+          path: colorgrab.zip
+          retention-days: 30
+
+      - name: Release to GitHub Releases
+        uses: softprops/action-gh-release@v3
+        if: github.ref_type == 'tag'
+        with:
+          body: |
+            ## ColorGrab Release
+
+            This release was generated automatically from tag `${{ github.ref_name }}`.
+            The changelog and commit summary appear below.
+
+          generate_release_notes: true
+          files: |
+            colorgrab.zip
+            ColorGrab/output/colorgrab-setup.exe

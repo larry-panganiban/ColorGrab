@@ -1,0 +1,45 @@
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Attach
+
+SortIncludes: false
+IncludeBlocks: Preserve
+AlignEscapedNewlines: DontAlign
+
+MacroBlockBegin: "^BEGIN_"
+MacroBlockEnd: "^END_"
+
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+
+PointerAlignment: Left
+SpaceAfterCStyleCast: true
+
+BreakConstructorInitializers: BeforeColon
+
+IndentCaseLabels: false
+ReflowComments: false
+
+IndentPPDirectives: None
+PPIndentWidth: 0
+
+SpacesBeforeTrailingComments: 2
+
+AccessModifierOffset: 1
+IndentAccessModifiers: false
+
+AlignConsecutiveDeclarations: None
+AlignConsecutiveAssignments: None
+AlignConsecutiveMacros: None
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
+
+SpacesInParentheses: false
+SpaceBeforeParens: ControlStatements

@@ -1,0 +1,10 @@
+[tools]
+python = "3.12"
+
+[tasks.lint]
+description = "Run cpplint and cppcheck against the full solution"
+run = [
+  "pip install -r requirements.txt",
+  "cpplint --recursive --exclude=.git --exclude=ColorGrab/resource.h --exclude ColorGrab/version.h .",
+  "cppcheck --project=ColorGrab.sln --library=mfc.cfg --enable=warning,style,performance,portability  --inline-suppr --error-exitcode=1 --check-level=exhaustive",
+]
