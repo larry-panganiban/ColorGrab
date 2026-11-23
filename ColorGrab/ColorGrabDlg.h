@@ -159,6 +159,7 @@ class CColorGrabDlg : public CDialog {
     CDarkStatusBar m_StatusBar;
     CToolTipCtrl m_ToolTip;
 
+    CFont m_InputFont;
     CBrush m_brDarkMode;
     COLORREF m_clrText;
 
@@ -229,7 +230,7 @@ class CColorGrabDlg : public CDialog {
     void ParseClarion(CString inst);
     void FigurePound();
     void TestForExpand();
-    void TestForUpperHex();
+    void TestForUpperHex(bool updateControl = true);
     void OnconvertHEX();
     void OnconvertRGB();
     void OnInitMenuPopup(CMenu* pMenu, UINT nIndex, BOOL bSysMenu);

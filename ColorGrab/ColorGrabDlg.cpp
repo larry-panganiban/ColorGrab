@@ -287,6 +287,20 @@ BOOL CColorGrabDlg::OnInitDialog() {
 
     SetupSystemMenu();  // add about and always on top to the system menu
 
+    if (m_InputFont.CreatePointFont(90, _T("MS Sans Serif"))) {
+        const int inputControlIds[] = {
+            IDC_RED, IDC_GREEN, IDC_BLUE, IDC_BLACK,
+            IDC_CYAN, IDC_MAGENTA, IDC_YELLOW, IDC_HEXCOLOR
+        };
+        for (int id : inputControlIds) {
+            if (CWnd* control = GetDlgItem(id)) {
+                control->SetFont(&m_InputFont);
+            }
+        }
+    } else {
+        TRACE(_T("Unable to create the larger input font.\n"));
+    }
+
     LoadPersistentVariables();
     ToggleOnTop(false);  // make always on top, unless save file said not to
 
@@ -754,12 +768,26 @@ void CColorGrabDlg::OnPaint() {
             ::SelectObject(hdcMem, hBitmap);
 
             if (m_Appflags & ExpandedDialog) {
-                ::BitBlt(hdc,
-                         magrect.TopLeft().x + 2, magrect.TopLeft().y + 2,
-                         magrect.Width() - 4, magrect.Height() - 4,
-                         hdcMem,
-                         0, 0,
-                         SRCCOPY);
+                BITMAP bitmapInfo{};
+                if (::GetObject(hBitmap, sizeof(bitmapInfo), &bitmapInfo) == sizeof(bitmapInfo)) {
+                    if (bitmapInfo.bmWidth == magrect.Width() &&
+                        bitmapInfo.bmHeight == magrect.Height()) {
+                        ::BitBlt(hdc,
+                                 magrect.TopLeft().x + 2, magrect.TopLeft().y + 2,
+                                 magrect.Width() - 4, magrect.Height() - 4,
+                                 hdcMem,
+                                 0, 0,
+                                 SRCCOPY);
+                    } else {
+                        ::SetStretchBltMode(hdc, COLORONCOLOR);
+                        ::StretchBlt(hdc,
+                                     magrect.TopLeft().x + 2, magrect.TopLeft().y + 2,
+                                     magrect.Width() - 4, magrect.Height() - 4,
+                                     hdcMem,
+                                     0, 0, bitmapInfo.bmWidth, bitmapInfo.bmHeight,
+                                     SRCCOPY);
+                    }
+                }
             }
             ::DeleteDC(hdcMem);
         }
@@ -900,10 +928,7 @@ void CColorGrabDlg::OnconvertRGB() {
         m_ToolTip.UpdateTipText(hsvTip, this, 1);
     }
 
-    // Only apply uppercase formatting when NOT in Visual C++ hex mode.
-    if ((m_Appflags & ModeVisualC) == 0) {
-        TestForUpperHex();
-    }
+    TestForUpperHex(false);
 
     // Only update the hex edit control
     SetDlgItemText(IDC_HEXCOLOR, m_Hexcolor);
@@ -942,6 +967,7 @@ void CColorGrabDlg::OnconvertHEX() {
         }
     }
 
+    TestForUpperHex(false);
     OnCopytoclip();
     Invalidate(FALSE);  // Call WM_PAINT, but don't erase background
 }
@@ -1605,7 +1631,9 @@ void CColorGrabDlg::OnLButtonDown(UINT nFlags, CPoint point) {
         //        area of a window.
 
         if (m_Appflags & EasyMove) {  // one click move is enabled
-            PostMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
+            ClientToScreen(&point);
+            ReleaseCapture();
+            SendMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
             SetCursor(m_hMoveCursor);
         }
     }
@@ -2503,7 +2531,7 @@ void CColorGrabDlg::OnUpdateOptionsUppercasehex(CCmdUI* pCmdUI) {
     pCmdUI->SetCheck(m_Appflags & UpperCaseHex);
 }
 
-void CColorGrabDlg::TestForUpperHex() {
+void CColorGrabDlg::TestForUpperHex(bool updateControl) {
     // Number of prefix characters to skip before normalizing case.
     // Prefixes like 0x, #, and $ are not part of the hex digits.
     int start = 0;
@@ -2522,7 +2550,9 @@ void CColorGrabDlg::TestForUpperHex() {
 
     m_Hexcolor = m_Hexcolor.Left(start) + payload;
 
-    SetDlgItemText(IDC_HEXCOLOR, m_Hexcolor);
+    if (updateControl) {
+        SetDlgItemText(IDC_HEXCOLOR, m_Hexcolor);
+    }
 }
 
 void CColorGrabDlg::OnRButtonDown(UINT nFlags, CPoint point) {
